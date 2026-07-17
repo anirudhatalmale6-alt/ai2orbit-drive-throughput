@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI2ORBIT · Drive Throughput Tester</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{--bg:#0a1410;--panel:#0e1c16;--panel2:#0b1712;--line:#1c3226;--green:#27e06a;--green2:#7ef0a6;--dim:#6f8a7c;--txt:#cfe9da;--warn:#f5c451;--red:#ff6b6b;--blue:#5ab7ff;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
+  header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+  h1{font-size:19px;margin:0 0 2px;letter-spacing:.5px;color:var(--green2)}
+  .version{font-size:11px;color:var(--dim)}
+  h2{font-size:13px;letter-spacing:.6px;margin:0;color:var(--green2);text-transform:uppercase}
+  .section{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-bottom:14px}
+  .section-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .section-body{padding:14px}
+  label{display:block;font-size:11px;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin-bottom:5px}
+  input[type=text],input[type=number],input[type=password]{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:9px 10px;font-family:inherit;font-size:13px}
+  input:focus{outline:none;border-color:var(--green)}
+  .field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  button{background:var(--green);color:#04110a;border:none;border-radius:6px;padding:9px 15px;font-weight:700;font-size:12px;letter-spacing:.5px;cursor:pointer;font-family:inherit}
+  button:hover{filter:brightness(1.08)}
+  button.ghost{background:transparent;color:var(--green2);border:1px solid var(--line)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
+  .stat .k{font-size:10px;letter-spacing:.5px;color:var(--dim);text-transform:uppercase}
+  .stat .v{font-size:20px;font-weight:700;color:var(--txt);margin-top:3px}
+  .stat.good .v{color:var(--green)}
+  .stat.big .v{font-size:30px}
+  .badge{font-size:10px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+  .badge.info{background:#12281c;color:var(--green2)}
+  .badge.pass{background:#0f3020;color:var(--green)}
+  .badge.run{background:#3a2f0c;color:var(--warn)}
+  .badge.off{background:#3a1414;color:var(--red)}
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12.5px}
+  th{text-align:left;color:var(--dim);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:7px 8px;border-bottom:1px solid #142218}
+  .barcell{min-width:120px}
+  .bar{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .bar span{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--green2));width:0%;transition:width .12s linear}
+  .note{font-size:12px;color:var(--dim);margin-top:10px}
+  .hl{color:var(--green2)}
+  .authpill{font-size:12px;color:var(--dim)}
+  .authpill b{color:var(--green)}
+  details{margin-top:6px}
+  summary{cursor:pointer;color:var(--green2);font-size:12px;letter-spacing:.4px}
+  ol{margin:8px 0 0;padding-left:20px;font-size:12.5px;color:var(--txt)}
+  ol li{margin-bottom:5px}
+  code{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px;color:var(--green2);word-break:break-all}
+  canvas{width:100%;max-width:100%;height:150px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;margin-top:8px}
+  .radio-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:2px}
+  .radio-row label{display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--txt);margin:0}
+  .msg{font-size:12px;margin-top:8px;min-height:16px}
+  .msg.err{color:var(--red)} .msg.ok{color:var(--green)} .msg.warn{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AI2ORBIT · DRIVE THROUGHPUT TESTER</h1>
+    <div class="version">Multi-channel upload benchmark · Google Drive · serverless test site · v1.0.0</div>
+  </header>
+
+  <!-- AUTH -->
+  <div class="section">
+    <div class="section-head"><h2>1 · Google Sign-in</h2><span class="badge off" id="authBadge">SIGNED OUT</span></div>
+    <div class="section-body">
+      <div class="field-grid">
+        <div style="grid-column:1/-1">
+          <label>Google OAuth Client ID (from your Google Cloud project)</label>
+          <input type="text" id="clientId" placeholder="xxxxxxxx-xxxx.apps.googleusercontent.com" autocomplete="off">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="signinBtn" onclick="initAuth()">SIGN IN WITH GOOGLE</button>
+        <button class="ghost" id="signoutBtn" onclick="signOut()" disabled>SIGN OUT</button>
+      </div>
+      <div class="msg" id="authMsg"></div>
+      <div class="authpill" id="whoami"></div>
+      <details>
+        <summary>One-time setup — how to get the Client ID (2 minutes)</summary>
+        <ol>
+          <li>Go to Google Cloud Console → APIs &amp; Services → <span class="hl">Credentials</span>.</li>
+          <li>Enable the <span class="hl">Google Drive API</span> (APIs &amp; Services → Library → Drive API → Enable).</li>
+          <li>Create <span class="hl">OAuth client ID</span> → type <span class="hl">Web application</span>.</li>
+          <li>Under <span class="hl">Authorized JavaScript origins</span> add this exact site: <code id="originCode">https://anirudhatalmale6-alt.github.io</code></li>
+          <li>Copy the Client ID it gives you and paste it in the box above. That's it — no client secret needed (browser token flow).</li>
+          <li>On the OAuth consent screen add your own Google account under <span class="hl">Test users</span> so it lets you in while the app is unverified.</li>
+        </ol>
+        <div class="note">Scope requested is <code>drive.file</code> — the app can only see and touch the files it creates in its own <span class="hl">AI2ORBIT_Throughput</span> folder, never the rest of your Drive.</div>
+      </details>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="section">
+    <div class="section-head"><h2>2 · Test configuration</h2><span class="badge info" id="cfgBadge">READY</span></div>
+    <div class="section-body">
+      <div class="field-grid">
+        <div>
+          <label>Parallel channels (pipes)</label>
+          <input type="number" id="channels" value="4" min="1" max="64" step="1">
+        </div>
+        <div>
+          <label>Total test size (MB)</label>
+          <input type="number" id="sizeMB" value="20" min="1" max="512" step="1">
+        </div>
+        <div>
+          <label>Folder name in Drive</label>
+          <input type="text" id="folderName" value="AI2ORBIT_Throughput">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label>Payload source</label>
+        <div class="radio-row">
+          <label><input type="radio" name="src" value="gen" checked> Generate test data (size above)</label>
+          <label><input type="radio" name="src" value="file"> Use a file I pick</label>
+          <input type="file" id="filePick" style="display:none">
+        </div>
+        <div class="note" id="fileNote"></div>
+      </div>
+      <div class="field-grid" style="margin-top:12px">
+        <div>
+          <label>DEMO link ceiling (MB/s) — simulation only</label>
+          <input type="number" id="linkCeil" value="12" min="1" max="1000" step="1">
+        </div>
+        <div>
+          <label>DEMO per-channel cap (MB/s) — simulation only</label>
+          <input type="number" id="chCap" value="5" min="1" max="1000" step="1">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="runReal" onclick="runTest('real')" disabled>RUN REAL UPLOAD TEST</button>
+        <button class="ghost" onclick="runTest('demo')">RUN DEMO (no sign-in, simulated)</button>
+        <button class="ghost" id="cleanupBtn" onclick="cleanup()" disabled>DELETE TEST FILES</button>
+      </div>
+      <div class="msg" id="runMsg"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="section">
+    <div class="section-head"><h2>3 · Throughput result</h2><span class="badge run" id="resBadge">IDLE</span></div>
+    <div class="section-body">
+      <div class="grid">
+        <div class="stat good big"><div class="k">Aggregate throughput</div><div class="v" id="aggMbps">—</div></div>
+        <div class="stat"><div class="k">Total moved</div><div class="v" id="aggBytes">—</div></div>
+        <div class="stat"><div class="k">Wall time</div><div class="v" id="aggTime">—</div></div>
+        <div class="stat"><div class="k">Speed-up vs 1 pipe</div><div class="v" id="aggSpeedup">—</div></div>
+        <div class="stat"><div class="k">Pipe efficiency</div><div class="v" id="aggEff">—</div></div>
+      </div>
+      <div class="bar" style="margin-top:12px;height:12px"><span id="aggBar"></span></div>
+      <table id="chTable">
+        <thead><tr><th>Channel</th><th>Size</th><th>Progress</th><th class="barcell"></th><th>Time</th><th>MB/s</th><th>Status</th></tr></thead>
+        <tbody id="chBody"><tr><td colspan="7" class="note">Run a test to see per-channel throughput. Each channel is an independent parallel upload stream to Google Drive.</td></tr></tbody>
+      </table>
+      <canvas id="chart" width="1040" height="150"></canvas>
+      <div class="note">Aggregate = total bytes ÷ wall-clock time (first byte to last channel done). Per-channel MB/s = that channel's bytes ÷ its own time. <span class="hl">Speed-up</span> compares aggregate against the single fastest pipe — how much the extra pipes actually bought you. <span class="hl">Efficiency</span> = speed-up ÷ channels (100% = perfect scaling, lower = the link is saturating).</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- state ---------------- */
+var accessToken=null, userEmail=null, tokenClient=null, createdIds=[], SCOPES='https://www.googleapis.com/auth/drive.file openid email profile';
+function $(id){return document.getElementById(id);}
+function clamp(v,lo,hi){v=isFinite(v)?v:lo;return Math.max(lo,Math.min(hi,v));}
+function fmtBytes(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';if(b<1073741824)return (b/1048576).toFixed(1)+' MB';return (b/1073741824).toFixed(2)+' GB';}
+function setMsg(id,txt,cls){var e=$(id);e.textContent=txt||'';e.className='msg'+(cls?' '+cls:'');}
+
+/* ---------------- auth (Google Identity Services) ---------------- */
+function initAuth(){
+  var cid=$('clientId').value.trim();
+  if(!cid){setMsg('authMsg','Paste your OAuth Client ID first (see setup below).','err');return;}
+  if(!(window.google&&google.accounts&&google.accounts.oauth2)){setMsg('authMsg','Google sign-in library not loaded yet — check your connection and retry.','err');return;}
+  try{
+    tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:cid, scope:SCOPES,
+      callback:function(resp){
+        if(resp&&resp.error){setMsg('authMsg','Sign-in failed: '+resp.error+(resp.error_description?' — '+resp.error_description:''),'err');return;}
+        accessToken=resp.access_token; onSignedIn();
+      }
+    });
+    setMsg('authMsg','Opening Google consent…','warn');
+    tokenClient.requestAccessToken({prompt:'consent'});
+  }catch(e){setMsg('authMsg','Could not start sign-in: '+e.message,'err');}
+}
+function onSignedIn(){
+  $('authBadge').textContent='SIGNED IN';$('authBadge').className='badge pass';
+  $('signoutBtn').disabled=false;$('runReal').disabled=false;
+  setMsg('authMsg','Token acquired — ready to upload.','ok');
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}})
+    .then(function(r){return r.json();}).then(function(u){userEmail=u.email||null;$('whoami').innerHTML=userEmail?('Signed in as <b>'+userEmail+'</b>'):'Signed in.';})
+    .catch(function(){$('whoami').textContent='Signed in.';});
+}
+function signOut(){
+  if(accessToken&&window.google&&google.accounts&&google.accounts.oauth2){try{google.accounts.oauth2.revoke(accessToken);}catch(e){}}
+  accessToken=null;userEmail=null;
+  $('authBadge').textContent='SIGNED OUT';$('authBadge').className='badge off';
+  $('signoutBtn').disabled=true;$('runReal').disabled=true;$('cleanupBtn').disabled=true;$('whoami').textContent='';
+  setMsg('authMsg','Signed out.','');
+}
+
+/* ---------------- payload ---------------- */
+function makeBlob(bytes){
+  // build a blob of ~bytes without holding one giant typed array: tile a 1MB random chunk
+  var unit=1048576, chunk=new Uint8Array(Math.min(unit,bytes));
+  for(var i=0;i<chunk.length;i++)chunk[i]=(i*1103515245+12345)&0xff; // deterministic filler
+  var parts=[], left=bytes;
+  while(left>0){var n=Math.min(unit,left);parts.push(n===chunk.length?chunk:chunk.subarray(0,n));left-=n;}
+  return new Blob(parts,{type:'application/octet-stream'});
+}
+
+/* ---------------- Drive folder + upload (real) ---------------- */
+function ensureFolder(name){
+  var q="mimeType='application/vnd.google-apps.folder' and name='"+name.replace(/'/g,"\\'")+"' and trashed=false";
+  return fetch('https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id)',{headers:{Authorization:'Bearer '+accessToken}})
+    .then(function(r){return r.json();}).then(function(j){
+      if(j.files&&j.files.length)return j.files[0].id;
+      return fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({name:name,mimeType:'application/vnd.google-apps.folder'})})
+        .then(function(r){return r.json();}).then(function(j2){return j2.id;});
+    });
+}
+function uploadReal(blob,name,folderId,onProgress){
+  return new Promise(function(resolve,reject){
+    var boundary='ai2orbit_'+Math.random().toString(36).slice(2);
+    var meta={name:name}; if(folderId)meta.parents=[folderId];
+    var pre='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+boundary+'\r\nContent-Type: application/octet-stream\r\n\r\n';
+    var post='\r\n--'+boundary+'--';
+    var body=new Blob([pre,blob,post]);
+    var xhr=new XMLHttpRequest();
+    xhr.open('POST','https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id');
+    xhr.setRequestHeader('Authorization','Bearer '+accessToken);
+    xhr.setRequestHeader('Content-Type','multipart/related; boundary='+boundary);
+    xhr.upload.onprogress=function(e){if(e.lengthComputable)onProgress(Math.min(e.loaded,blob.size));};
+    xhr.onload=function(){if(xhr.status>=200&&xhr.status<300){onProgress(blob.size);var id=null;try{id=JSON.parse(xhr.responseText).id;}catch(_){ }resolve(id);}else reject(new Error('HTTP '+xhr.status+': '+xhr.responseText.slice(0,180)));};
+    xhr.onerror=function(){reject(new Error('network error'));};
+    xhr.send(body);
+  });
+}
+
+/* ---------------- simulated transport (demo) ---------------- */
+function uploadDemo(size,idx,activeCount,onProgress){
+  return new Promise(function(resolve){
+    var ceil=clamp(parseFloat($('linkCeil').value),1,1000)*1048576;   // link ceiling B/s (shared)
+    var cap=clamp(parseFloat($('chCap').value),1,1000)*1048576;       // per-channel cap B/s
+    var rate=Math.min(cap,ceil/activeCount)*(0.85+Math.random()*0.3); // shared-link model + jitter
+    var sent=0, tick=80;
+    var iv=setInterval(function(){
+      sent+=rate*(tick/1000);
+      if(sent>=size){sent=size;onProgress(size);clearInterval(iv);resolve(null);return;}
+      onProgress(sent);
+    },tick);
+  });
+}
+
+/* ---------------- test runner ---------------- */
+var running=false;
+function runTest(mode){
+  if(running)return;
+  var channels=clamp(parseInt($('channels').value),1,64);
+  $('channels').value=channels;
+  var src=document.querySelector('input[name=src]:checked').value;
+  var pickedFile=$('filePick').files[0];
+  var totalBytes, fileBlob=null, baseName;
+  if(src==='file'){
+    if(!pickedFile){setMsg('runMsg','Pick a file first, or switch to Generate test data.','err');return;}
+    fileBlob=pickedFile; totalBytes=pickedFile.size; baseName=pickedFile.name;
+  }else{
+    totalBytes=Math.round(clamp(parseFloat($('sizeMB').value),1,512)*1048576); baseName='ai2orbit_test';
+  }
+  if(mode==='real'&&!accessToken){setMsg('runMsg','Sign in first for a real upload, or use RUN DEMO.','err');return;}
+  running=true;
+  $('runReal').disabled=true;$('resBadge').textContent='RUNNING';$('resBadge').className='badge run';
+  setMsg('runMsg',(mode==='demo'?'Demo (simulated transport) — ':'')+'building '+channels+' channel(s)…','warn');
+
+  // split into parts
+  var parts=[], base=Math.floor(totalBytes/channels), rem=totalBytes-base*channels;
+  var offset=0;
+  for(var i=0;i<channels;i++){
+    var sz=base+(i<rem?1:0);
+    var part={idx:i,size:sz};
+    if(mode==='real'){ part.blob = fileBlob ? fileBlob.slice(offset,offset+sz) : makeBlob(sz); }
+    offset+=sz; parts.push(part);
+  }
+
+  // build UI rows
+  var body=$('chBody');body.innerHTML='';
+  var loaded=new Array(channels).fill(0), chStart=new Array(channels), chEnd=new Array(channels);
+  for(var c=0;c<channels;c++){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>CH '+c+'</td><td>'+fmtBytes(parts[c].size)+'</td>'+
+      '<td id="pc'+c+'">0%</td><td class="barcell"><div class="bar"><span id="bar'+c+'"></span></div></td>'+
+      '<td id="tm'+c+'">—</td><td id="mb'+c+'">—</td><td id="st'+c+'"><span class="badge run">wait</span></td>';
+    body.appendChild(tr);
+  }
+
+  var t0=performance.now();
+  function updAgg(){
+    var sum=0;for(var k=0;k<channels;k++)sum+=loaded[k];
+    var el=(performance.now()-t0)/1000;
+    $('aggBar').style.width=(sum/totalBytes*100).toFixed(1)+'%';
+    $('aggMbps').textContent=el>0?((sum/1048576)/el).toFixed(2)+' MB/s':'—';
+    $('aggBytes').textContent=fmtBytes(sum)+' / '+fmtBytes(totalBytes);
+    $('aggTime').textContent=el.toFixed(1)+' s';
+  }
+  function mkProg(idx){return function(ld){
+    loaded[idx]=ld;
+    var p=parts[idx].size?ld/parts[idx].size:1;
+    $('bar'+idx).style.width=(p*100).toFixed(1)+'%';
+    $('pc'+idx).textContent=(p*100).toFixed(0)+'%';
+    var el=(performance.now()-chStart[idx])/1000;
+    $('tm'+idx).textContent=el.toFixed(1)+'s';
+    $('mb'+idx).textContent=el>0?((ld/1048576)/el).toFixed(2):'—';
+    $('st'+idx).innerHTML='<span class="badge run">up</span>';
+    updAgg();
+  };}
+
+  var tasks=parts.map(function(p){
+    chStart[p.idx]=performance.now();
+    var run=mode==='real'
+      ? uploadReal(p.blob,baseName+'_p'+p.idx,window.__folderId,mkProg(p.idx))
+      : uploadDemo(p.size,p.idx,channels,mkProg(p.idx));
+    return run.then(function(id){
+      chEnd[p.idx]=performance.now();
+      if(id)createdIds.push(id);
+      $('st'+p.idx).innerHTML='<span class="badge pass">done</span>';
+    }).catch(function(err){
+      chEnd[p.idx]=performance.now();
+      $('st'+p.idx).innerHTML='<span class="badge off">fail</span>';
+      setMsg('runMsg','Channel '+p.idx+' failed: '+err.message,'err');
+    });
+  });
+
+  var pre=Promise.resolve();
+  if(mode==='real'){ pre=ensureFolder($('folderName').value.trim()||'AI2ORBIT_Throughput').then(function(fid){window.__folderId=fid;}); }
+  pre.then(function(){ return Promise.all(tasks); }).then(function(){
+    finish(channels,totalBytes,t0,chStart,chEnd,parts,mode);
+  }).catch(function(err){
+    setMsg('runMsg','Test error: '+err.message,'err');
+    running=false;$('runReal').disabled=!accessToken;$('resBadge').textContent='ERROR';$('resBadge').className='badge off';
+  });
+}
+
+function finish(channels,totalBytes,t0,chStart,chEnd,parts,mode){
+  var t1=performance.now(), wall=(t1-t0)/1000;
+  var agg=(totalBytes/1048576)/wall;
+  var perCh=[], maxSingle=0;
+  for(var i=0;i<channels;i++){
+    var el=Math.max((chEnd[i]-chStart[i])/1000,1e-6), mb=(parts[i].size/1048576)/el;
+    perCh.push(mb); if(mb>maxSingle)maxSingle=mb;
+  }
+  var speedup=maxSingle>0?agg/maxSingle:0, eff=channels>0?speedup/channels*100:0;
+  $('aggMbps').textContent=agg.toFixed(2)+' MB/s';
+  $('aggBytes').textContent=fmtBytes(totalBytes);
+  $('aggTime').textContent=wall.toFixed(2)+' s';
+  $('aggSpeedup').textContent=speedup.toFixed(2)+'×';
+  $('aggEff').textContent=eff.toFixed(0)+'%';
+  $('aggBar').style.width='100%';
+  drawChart(perCh);
+  $('resBadge').textContent=(mode==='demo'?'DEMO DONE':'DONE');$('resBadge').className='badge pass';
+  setMsg('runMsg',(mode==='demo'?'Demo complete (simulated). ':'Upload complete. ')+channels+' pipes · '+agg.toFixed(2)+' MB/s aggregate · '+speedup.toFixed(2)+'× speed-up.'+(mode==='real'?' Use DELETE TEST FILES to clean up.':''),'ok');
+  running=false;$('runReal').disabled=!accessToken;$('cleanupBtn').disabled=(createdIds.length===0);
+}
+
+/* ---------------- chart ---------------- */
+function drawChart(perCh){
+  var cv=$('chart'),ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);
+  var n=perCh.length,max=Math.max.apply(null,perCh.concat([0.001])),W=cv.width,H=cv.height,pad=24;
+  var bw=(W-pad*2)/n*0.7, gap=(W-pad*2)/n*0.3;
+  ctx.fillStyle='#6f8a7c';ctx.font='10px Segoe UI';ctx.fillText('per-channel MB/s',pad,14);
+  for(var i=0;i<n;i++){
+    var h=(perCh[i]/max)*(H-pad-18), x=pad+i*((W-pad*2)/n)+gap/2, y=H-18-h;
+    var g=ctx.createLinearGradient(0,y,0,H-18);g.addColorStop(0,'#7ef0a6');g.addColorStop(1,'#27e06a');
+    ctx.fillStyle=g;ctx.fillRect(x,y,bw,h);
+    ctx.fillStyle='#6f8a7c';ctx.fillText(i,x+bw/2-3,H-6);
+  }
+}
+
+/* ---------------- cleanup ---------------- */
+function cleanup(){
+  if(!accessToken||!createdIds.length){setMsg('runMsg','Nothing to delete.','warn');return;}
+  $('cleanupBtn').disabled=true;setMsg('runMsg','Deleting '+createdIds.length+' test file(s)…','warn');
+  var ids=createdIds.slice();createdIds=[];
+  Promise.all(ids.map(function(id){return fetch('https://www.googleapis.com/drive/v3/files/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+accessToken}});}))
+    .then(function(){setMsg('runMsg','Deleted '+ids.length+' test file(s) from Drive.','ok');})
+    .catch(function(e){setMsg('runMsg','Cleanup error: '+e.message,'err');createdIds=ids;$('cleanupBtn').disabled=false;});
+}
+
+/* ---------------- file picker wiring ---------------- */
+document.querySelectorAll('input[name=src]').forEach(function(r){
+  r.onchange=function(){
+    if(document.querySelector('input[name=src]:checked').value==='file'){$('filePick').style.display='';$('filePick').click();}
+    else{$('filePick').style.display='none';$('fileNote').textContent='';}
+  };
+});
+$('filePick').onchange=function(){var f=this.files[0];$('fileNote').innerHTML=f?('Selected: <span class="hl">'+f.name+'</span> ('+fmtBytes(f.size)+') — split across the channels above.'):'';};
+$('originCode').textContent=location.origin;
+</script>
+</body>
+</html>
